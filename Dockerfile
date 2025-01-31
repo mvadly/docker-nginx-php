@@ -39,7 +39,7 @@ RUN sed -i 's/listen = .*/listen = 9000/' /etc/php/7.2/fpm/pool.d/www.conf && \
     chown -R www-data:www-data /var/www/html
 
 # Menyalakan Nginx di port 80
-EXPOSE 80
+EXPOSE 443 80
 
 # Menyalakan Nginx dan PHP-FPM ketika container dijalankan
 CMD service redis-server start && service php7.2-fpm start && nginx -g "daemon off;"
