@@ -28,7 +28,7 @@ RUN apt-get update && \
         php7.2-opcache && \
     apt-get clean
 
-RUN apt-get install curl -y && apt-get install telnet -y && apt-get install vim  -y
+RUN apt-get install curl -y && apt-get install telnet -y && apt-get install vim  -y && apt-get install nginx-extras -y && apt-get install wget -y
 
 # Mengatur konfigurasi Nginx
 COPY default /etc/nginx/sites-available/default
