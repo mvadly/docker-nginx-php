@@ -1,0 +1,9 @@
+services:
+  svc:
+    build:
+      context: .
+    volumes:
+      - D://Projects/PHP:/var/www/html
+    ports:
+      - 8080:80
+      - 8888:8888

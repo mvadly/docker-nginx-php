@@ -1,45 +1,34 @@
-# Menggunakan base image resmi Ubuntu
-FROM ubuntu:18.04
+# Menggunakan base image resmi Alpine
+FROM alpine:3.12
 
 # Mengatur variabel lingkungan
 ENV DEBIAN_FRONTEND=noninteractive
 
-
 WORKDIR /var/www/html
 
-# Memperbarui package list dan menginstal dependensi
-RUN apt-get update && \
-    apt-get install -y software-properties-common && \
-    add-apt-repository ppa:ondrej/php -y && \
-    apt-get update && \
-    apt-get install -y \
-        nginx \
-        php7.2 \
-        php7.2-fpm \
-        php7.2-cli \
-        php7.2-mysql \
-        php7.2-curl \
-        php7.2-xml \
-        php7.2-mbstring \
-        php7.2-zip \
-        php7.2-gd \
-        php7.2-intl \
-        php7.2-soap \
-        php7.2-opcache && \
-    apt-get clean
+# Install Nginx and PHP extensions
+RUN apk update && \
+    apk add --no-cache nginx curl curl-dev busybox-extras vim libxml2-dev libpng-dev icu-dev \
+    php php-fpm php-mysqli php-curl php-xml php-mbstring php-zip php-gd php-intl php-soap php-opcache
 
-RUN apt-get install curl -y && apt-get install telnet -y && apt-get install vim  -y
+# Configure Nginx
+COPY default /etc/nginx/http.d/default.conf
 
-# Mengatur konfigurasi Nginx
-COPY default /etc/nginx/sites-available/default
+# Create /run/nginx directory for nginx.pid
+RUN mkdir -p /run/nginx
 
-# Menyalakan PHP-FPM dan Nginx
-RUN sed -i 's/listen = .*/listen = 9000/' /etc/php/7.2/fpm/pool.d/www.conf && \
-    mkdir -p /run/php && \
+# Configure PHP-FPM to listen on port 9000
+RUN sed -i 's/^listen = .*/listen = 9000/' /etc/php7/php-fpm.d/www.conf
+
+# Create www-data user and group for permissions (ignore if already exists)
+RUN addgroup -S www-data || true && adduser -S -G www-data www-data || true
+
+RUN mkdir -p /run/php && \
     chown -R www-data:www-data /var/www/html
 
 # Menyalakan Nginx di port 80
 EXPOSE 80
+EXPOSE 8888
 
 # Menyalakan Nginx dan PHP-FPM ketika container dijalankan
-CMD service php7.2-fpm start && nginx -g "daemon off;"
+CMD php-fpm7 & nginx -g 'daemon off;'
