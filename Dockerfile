@@ -4,6 +4,8 @@ FROM ubuntu:18.04
 # Mengatur variabel lingkungan
 ENV DEBIAN_FRONTEND=noninteractive
 
+ENV TZ=Asia/Jakarta
+
 
 WORKDIR /var/www/html
 
@@ -29,6 +31,10 @@ RUN apt-get update && \
     apt-get clean
 
 RUN apt-get install curl -y && apt-get install telnet -y && apt-get install vim  -y
+RUN apt-get install nginx-extras -y
+RUN apt-get install php-redis -y
+
+RUN echo "dockertest from image mvadly/nginx-php:7.2" > /about
 
 # Mengatur konfigurasi Nginx
 COPY default /etc/nginx/sites-available/default
@@ -39,7 +45,7 @@ RUN sed -i 's/listen = .*/listen = 9000/' /etc/php/7.2/fpm/pool.d/www.conf && \
     chown -R www-data:www-data /var/www/html
 
 # Menyalakan Nginx di port 80
-EXPOSE 80
+EXPOSE 443 80
 
 # Menyalakan Nginx dan PHP-FPM ketika container dijalankan
-CMD service php7.2-fpm start && nginx -g "daemon off;"
+CMD ["sh", "-c", "service php7.2-fpm start && nginx -g 'daemon off;'"]
