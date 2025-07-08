@@ -1,58 +1,40 @@
-# Menggunakan base image resmi Ubuntu
-FROM ubuntu:18.04
+FROM php:7.4-fpm-alpine
 
-# Mengatur variabel lingkungan
-ENV DEBIAN_FRONTEND=noninteractive
+# Install system dependencies
+RUN apk add --no-cache nginx supervisor bash libpng libpng-dev libjpeg-turbo-dev libwebp-dev libxpm-dev freetype-dev zip unzip git curl oniguruma-dev icu-dev libxml2-dev
 
-ENV TZ=Asia/Jakarta
+# Install PHP extensions
+RUN docker-php-ext-configure gd \
+    --with-freetype \
+    --with-jpeg \
+    --with-webp \
+    --with-xpm \
+    && docker-php-ext-install gd pdo pdo_mysql mbstring exif pcntl bcmath intl xml  
 
+# Install Composer
+COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
+# Set working directory
 WORKDIR /var/www/html
 
-# Memperbarui package list dan menginstal dependensi
-RUN apt-get update && \
-    apt-get install -y software-properties-common && \
-    add-apt-repository ppa:ondrej/php -y && \
-    apt-get update && \
-    apt-get install -y \
-        nginx \
-        php7.2 \
-        php7.2-fpm \
-        php7.2-cli \
-        php7.2-mysql \
-        php7.2-curl \
-        php7.2-xml \
-        php7.2-mbstring \
-        php7.2-zip \
-        php7.2-gd \
-        php7.2-intl \
-        php7.2-soap \
-        php7.2-opcache && \
-    apt-get clean
+# Copy application code
 
-RUN apt-get install curl -y && apt-get install telnet -y && apt-get install vim -y && apt-get install wget -y
-RUN apt-get install nginx-extras -y
-RUN apt-get install php-redis -y
+# Install PHP dependencies
+# RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-RUN wget https://github.com/elastic/apm-agent-php/releases/download/v1.10.0/apm-agent-php_1.10.0_all.deb  && dpkg -i apm-agent-php_1.10.0_all.deb
+# Copy nginx config
+COPY ./config/nginx.conf /etc/nginx/nginx.conf
 
+# Copy supervisor config
+COPY ./config/supervisord.conf /etc/supervisord.conf
 
-RUN echo "dockertest from image mvadly/nginx-php:7.2" > /about
+COPY ./index.php index.php
 
-# Mengatur konfigurasi Nginx
-COPY default /etc/nginx/sites-available/default
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html
 
-# Menyalakan PHP-FPM dan Nginx
-RUN sed -i 's/listen = .*/listen = 9000/' /etc/php/7.2/fpm/pool.d/www.conf && \
-    mkdir -p /run/php && \
-    chown -R www-data:www-data /var/www/html
-RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" && \
-    php -r "if (hash_file('sha384', 'composer-setup.php') === 'dac665fdc30fdd8ec78b38b9800061b4150413ff2e3b6f88543c636f7cd84f6db9189d43a81e5503cda447da73c7e5b6') { echo 'Installer verified'.PHP_EOL; } else { echo 'Installer corrupt'.PHP_EOL; unlink('composer-setup.php'); exit(1); }" && \
-    php composer-setup.php && \
-    php -r "unlink('composer-setup.php');"
-RUN mv composer.phar /usr/local/bin/composer
-# Menyalakan Nginx di port 80
-EXPOSE 443 80
+# Expose HTTP port
+EXPOSE 80 443
 
-# Menyalakan Nginx dan PHP-FPM ketika container dijalankan
-CMD ["sh", "-c", "service php7.2-fpm start && nginx -g 'daemon off;'"]
+# Start supervisord (which runs php-fpm and nginx)
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
