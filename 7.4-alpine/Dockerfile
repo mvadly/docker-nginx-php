@@ -1,7 +1,7 @@
 FROM php:7.4-fpm-alpine
 
 # Install system dependencies
-RUN apk add --no-cache nginx supervisor bash libpng libpng-dev libjpeg-turbo-dev libwebp-dev libxpm-dev freetype-dev zip unzip git curl oniguruma-dev icu-dev libxml2-dev
+RUN apk add --no-cache nginx supervisor bash libpng libpng-dev libjpeg-turbo-dev libwebp-dev libxpm-dev freetype-dev zip unzip git curl oniguruma-dev icu-dev libxml2-dev composer
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd \
@@ -10,9 +10,6 @@ RUN docker-php-ext-configure gd \
     --with-webp \
     --with-xpm \
     && docker-php-ext-install gd pdo pdo_mysql mbstring exif pcntl bcmath intl xml  
-
-# Install Composer
-COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /var/www/html
@@ -23,12 +20,10 @@ WORKDIR /var/www/html
 # RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Copy nginx config
-COPY ./config/nginx.conf /etc/nginx/nginx.conf
+COPY ./nginx.conf /etc/nginx/nginx.conf
 
 # Copy supervisor config
-COPY ./config/supervisord.conf /etc/supervisord.conf
-
-COPY ./index.php index.php
+COPY ./supervisord.conf /etc/supervisord.conf
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html
